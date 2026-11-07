@@ -26,7 +26,7 @@ Works with Claude Code and Codex, on macOS, Linux and Windows (Windows untested)
 | `/huddle status` | What's set up and connected. |
 | `/huddle disconnect` | Stop sharing this chat. Its entry stays until you delete the file. |
 
-In Codex, use `$huddle` or just say the phrase.
+In Codex, say the phrase in plain words (for example "huddle setup this chat").
 
 ## How it works
 
