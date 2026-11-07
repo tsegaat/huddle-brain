@@ -1,0 +1,10 @@
+{
+  "name": "huddle-brain",
+  "private": true,
+  "type": "module",
+  "description": "Huddle: a shared idea memory for friends' coding agents",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "test": "node --test huddle/test/unit.test.mjs huddle/test/cli.test.mjs"
+  }
+}
