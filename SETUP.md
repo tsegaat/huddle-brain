@@ -6,7 +6,7 @@ Do these steps in order. If a step fails, stop and tell me exactly what to do. T
 
 1. Check that `git` and Node.js 20 or newer are installed (`git --version`, `node --version`). Install whichever is missing.
 2. Check that I can reach the repo: `GIT_TERMINAL_PROMPT=0 git ls-remote https://github.com/tsegaat/huddle-brain`.
-   If that fails, I'm either not logged in to GitHub or haven't accepted my invite to the repo. If the GitHub CLI is installed, run `gh auth status`; if I'm logged in, run `gh auth setup-git` and try again. Otherwise tell me to accept the invite (github.com/tsegaat/huddle-brain/invitations) and log in with `gh auth login`.
+   If that fails, I'm either not logged in to GitHub or haven't accepted my invite to the repo. If the GitHub CLI (`gh`) isn't installed, install it (on a Mac: `brew install gh`). Run `gh auth status`; if I'm logged in, run `gh auth setup-git` and try again. Otherwise tell me to accept the invite (github.com/tsegaat/huddle-brain/invitations), then run `gh auth login` in my own terminal (it opens a browser), and tell you when it's done so you can run `gh auth setup-git` and try again.
 3. Get the repo: if `~/.huddle/brain` exists, run `git -C ~/.huddle/brain pull`. Otherwise run `git clone https://github.com/tsegaat/huddle-brain ~/.huddle/brain`.
 4. Run `node ~/.huddle/brain/huddle/huddle.mjs install --llm <claude or codex: whichever agent you are>`.
    This installs the huddle skill and creates the scheduled routine (every 30 minutes, on this computer).
