@@ -46,6 +46,7 @@ export function makeWorld() {
   const seed = path.join(root, 'seed');
   fs.mkdirSync(path.join(seed, 'entries'), { recursive: true });
   fs.cpSync(path.join(SOURCE_REPO, 'huddle'), path.join(seed, 'huddle'), { recursive: true });
+  fs.copyFileSync(path.join(SOURCE_REPO, 'JOIN.md'), path.join(seed, 'JOIN.md'));
   fs.writeFileSync(path.join(seed, 'entries', 'README.md'), '# entries\n');
   sh('git', ['init', '-q', '-b', 'main'], { cwd: seed });
   sh('git', ['add', '-A'], { cwd: seed });

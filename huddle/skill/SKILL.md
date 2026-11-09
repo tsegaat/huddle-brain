@@ -1,6 +1,6 @@
 ---
 name: huddle
-description: Shared idea memory with the user's friends. Use when the user says "/huddle", asks to connect or share this chat with huddle ("huddle setup this chat", "share this chat with huddle"), asks what everyone or their friends think ("see what everyone thinks"), or asks for huddle status, sync or disconnect.
+description: Shared idea memory with the user's friends. Use when the user says "/huddle", asks to connect or share this chat with huddle ("huddle setup this chat", "share this chat with huddle"), asks what everyone or their friends think ("see what everyone thinks"), or asks for huddle status, sync or disconnect, or asks to invite or add a friend to huddle.
 ---
 
 # Huddle
@@ -41,6 +41,7 @@ When the user asks what everyone or their friends think, or types "/huddle" foll
 
 - Status: `{{HUDDLE}} status`
 - Share connected chats now ("huddle sync now"): `{{HUDDLE}} sync --now`
+- Invite a friend ("huddle invite <github username>", "add my friend to huddle"): `{{HUDDLE}} invite <github username>`. If the user didn't give a GitHub username, ask for it. Show the user the message it prints so they can copy it to their friend.
 - Stop sharing this chat: `{{HUDDLE}} disconnect --marker huddle-XXXXXXXX` (8 random letters and digits)
 
 If a command says Huddle isn't set up, tell the user to paste the setup prompt from SETUP.md in the shared repo into their agent.

@@ -9,12 +9,22 @@ Creative ideas come from people. When you think something through with your agen
 
 Works with Claude Code and Codex, on macOS, Linux and Windows (Windows untested).
 
-## Add a friend
+## Join (for friends)
 
-1. Invite them to this private repo: Settings → Collaborators → Add people, or
-   `gh api -X PUT repos/tsegaat/huddle-brain/collaborators/THEIR_GITHUB_USERNAME -f permission=push`
-2. They accept the invite (GitHub emails them).
-3. They paste the contents of [SETUP.md](SETUP.md) into their coding agent. That's the whole setup.
+1. Accept your invite: https://github.com/tsegaat/huddle-brain/invitations
+2. Paste the prompt at the bottom of [JOIN.md](JOIN.md) into Claude Code or Codex. It installs everything it needs and tells you when it needs you (a GitHub login in your browser, or your password for an install).
+
+You need a GitHub account and Claude Code (the desktop app's Code tab is fine) or Codex. Nothing else to set up beforehand.
+
+## Add a friend (for whoever runs the repo)
+
+Say "huddle invite THEIR_GITHUB_USERNAME" in any chat, or run:
+
+```
+node ~/.huddle/brain/huddle/huddle.mjs invite THEIR_GITHUB_USERNAME
+```
+
+It sends the GitHub invite and prints a message to send them (the text of [JOIN.md](JOIN.md)). Edit JOIN.md to change that message.
 
 ## Use it
 
@@ -89,6 +99,7 @@ The skill runs these for you; you can also run them in a terminal.
 ```
 node ~/.huddle/brain/huddle/huddle.mjs status
 node ~/.huddle/brain/huddle/huddle.mjs sync --now
+node ~/.huddle/brain/huddle/huddle.mjs invite GITHUB_USERNAME
 node ~/.huddle/brain/huddle/huddle.mjs uninstall
 ```
 

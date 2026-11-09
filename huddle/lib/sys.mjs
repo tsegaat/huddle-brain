@@ -64,6 +64,36 @@ export function which(bin) {
   return null;
 }
 
+// Find the Claude Code or Codex command. People who only use the Claude desktop app have no `claude`
+// on PATH, but the app ships one in a folder that changes with each app update, so look for the newest.
+export function findAgentBin(kind) {
+  const found = which(kind);
+  if (found || kind !== 'claude') return found;
+  const exec = process.env.CLAUDE_CODE_EXECPATH;
+  if (exec && path.basename(exec) === 'claude' && isExecutable(exec)) return exec;
+  const root = path.join(home(), 'Library', 'Application Support', 'Claude', 'claude-code');
+  const version = (v) => v.split('.').map((n) => n.padStart(6, '0')).join('.');
+  let versions = [];
+  try {
+    versions = fs.readdirSync(root).sort((a, b) => (version(a) < version(b) ? 1 : -1));
+  } catch {
+    return null;
+  }
+  for (const v of versions) {
+    let builds = [];
+    try {
+      builds = fs.readdirSync(path.join(root, v));
+    } catch {
+      continue;
+    }
+    for (const b of builds) {
+      const bin = path.join(root, v, b, 'claude.app', 'Contents', 'MacOS', 'claude');
+      if (isExecutable(bin)) return bin;
+    }
+  }
+  return null;
+}
+
 function isExecutable(file) {
   try {
     fs.accessSync(file, fs.constants.X_OK);

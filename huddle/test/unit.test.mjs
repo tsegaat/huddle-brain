@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import { buildEntry, cleanModelEntry, listEntries, parseEntry, slugify, validateEntry } from '../lib/entries.mjs';
 import { redact } from '../lib/redact.mjs';
 import { cronLine, launchdPlist } from '../lib/schedule.mjs';
+import { findAgentBin, which } from '../lib/sys.mjs';
 import { findChatFile, readMessages } from '../lib/transcripts.mjs';
 
 const tmp = () => fs.mkdtempSync(path.join(os.tmpdir(), 'huddle-unit-'));
@@ -195,4 +196,31 @@ test('launchd plist and cron line', () => {
   assert.match(plist, /\/h &amp; co/);
   const cron = cronLine(opts);
   assert.match(cron, /^\*\/30 \* \* \* \* PATH="\/a:\/b" HOME="\/h & co" "\/opt\/node" ".*huddle\.mjs" sync >> ".*sync\.log" 2>&1 # huddle-sync$/);
+});
+
+// ---------- finding the agent command ----------
+
+test('findAgentBin falls back to the newest Claude desktop app binary', (t) => {
+  const home = tmp();
+  const saved = { HOME: process.env.HOME, PATH: process.env.PATH, EXEC: process.env.CLAUDE_CODE_EXECPATH };
+  process.env.HOME = home;
+  process.env.PATH = path.join(home, 'empty');
+  delete process.env.CLAUDE_CODE_EXECPATH;
+  t.after(() => {
+    process.env.HOME = saved.HOME;
+    process.env.PATH = saved.PATH;
+    if (saved.EXEC) process.env.CLAUDE_CODE_EXECPATH = saved.EXEC;
+  });
+  if (which('claude')) return t.skip('a system-wide claude is installed');
+  assert.equal(findAgentBin('claude'), null);
+  const make = (version) => {
+    const file = path.join(home, 'Library', 'Application Support', 'Claude', 'claude-code', version, 'abc', 'claude.app', 'Contents', 'MacOS', 'claude');
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, '#!/bin/sh\n', { mode: 0o755 });
+    return file;
+  };
+  make('2.1.9');
+  const newest = make('2.1.10');
+  assert.equal(findAgentBin('claude'), newest);
+  assert.equal(findAgentBin('codex'), null);
 });

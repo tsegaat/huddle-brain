@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { run } from './sys.mjs';
+import { findAgentBin, run } from './sys.mjs';
 
 // Session variables from the agent we're running inside. A nested run must not think it is that session.
 const SESSION_VARS = [
@@ -43,6 +43,10 @@ export function llmCommand(llm, outFile) {
 }
 
 export function askModel(llm, prompt, { timeoutMs = 300_000 } = {}) {
+  // The saved path can go stale (an app update moves the bundled binary), so look again if it's gone.
+  if ((llm.kind === 'claude' || llm.kind === 'codex') && !fs.existsSync(llm.bin)) {
+    llm = { ...llm, bin: findAgentBin(llm.kind) || llm.bin };
+  }
   const work = fs.mkdtempSync(path.join(os.tmpdir(), 'huddle-'));
   const outFile = path.join(work, 'answer.txt');
   try {

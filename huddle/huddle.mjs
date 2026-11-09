@@ -19,6 +19,7 @@ import { installSchedule, removeSchedule, scheduleInstalled } from './lib/schedu
 import {
   REPO_DIR,
   SCRIPT_DIR,
+  findAgentBin,
   SCRIPT_PATH,
   chatsPath,
   configPath,
@@ -48,15 +49,19 @@ const NOT_SET_UP =
 function parseArgs(argv) {
   const [cmd = 'help', ...rest] = argv;
   const opts = {};
+  const positional = [];
   for (let i = 0; i < rest.length; i++) {
     const arg = rest[i];
-    if (!arg.startsWith('--')) continue;
+    if (!arg.startsWith('--')) {
+      positional.push(arg);
+      continue;
+    }
     const eq = arg.indexOf('=');
     if (eq > 0) opts[arg.slice(2, eq)] = arg.slice(eq + 1);
     else if (rest[i + 1] !== undefined && !rest[i + 1].startsWith('--')) opts[arg.slice(2)] = rest[++i];
     else opts[arg.slice(2)] = true;
   }
-  return { cmd, opts };
+  return { cmd, opts, positional };
 }
 
 function fail(message) {
@@ -148,7 +153,7 @@ function pickModel(opts, old) {
   const kinds = [...new Set([preferred, 'claude', 'codex'])].filter((k) => k === 'claude' || k === 'codex');
   const tried = [];
   for (const kind of kinds) {
-    const bin = which(kind);
+    const bin = findAgentBin(kind);
     if (!bin) {
       tried.push(`${kind}: not installed`);
       continue;
@@ -493,6 +498,51 @@ function consult(opts) {
   }
 }
 
+// ---------- invite ----------
+
+// "owner/repo" from the origin URL (https or ssh), or null for anything that isn't GitHub.
+function githubRepo(url) {
+  const m = String(url || '').match(/github\.com[/:]([^/\s]+)\/([^/\s]+?)(?:\.git)?\/?$/);
+  return m ? `${m[1]}/${m[2]}` : null;
+}
+
+// Adds a friend to the shared repo, then prints the message to send them (JOIN.md).
+function invite(opts, positional) {
+  const user = String(positional[0] || (typeof opts.user === 'string' ? opts.user : '')).replace(/^@/, '').trim();
+  const repo = githubRepo(git(['remote', 'get-url', 'origin']).out);
+  const message = fs.readFileSync(path.join(REPO_DIR, 'JOIN.md'), 'utf8').trim();
+  const lines = [];
+  if (!user) {
+    lines.push('No GitHub username given, so nobody was invited. Message to send a friend you already invited:');
+  } else if (!/^[A-Za-z0-9-]{1,39}$/.test(user)) {
+    return fail(`"${user}" doesn't look like a GitHub username (letters, digits and dashes).`);
+  } else if (!repo) {
+    return fail("The shared repo isn't on GitHub, so I can't invite anyone automatically.");
+  } else if (!which('gh')) {
+    lines.push(
+      "The GitHub CLI (gh) isn't installed, so I couldn't send the invite. Invite them on GitHub:",
+      `  https://github.com/${repo}/settings/access -> Add people -> ${user}`,
+      '',
+      'Then send them this message:',
+    );
+  } else {
+    const r = run('gh', ['api', '-X', 'PUT', `repos/${repo}/collaborators/${user}`, '-f', 'permission=push'], { timeoutMs: 30_000 });
+    if (!r.ok) {
+      return fail(
+        `Couldn't invite ${user}: ${firstLine(r.err || r.out)}\n` +
+          `Check the username, and that you're logged in to gh as the repo's owner (gh auth status).\n` +
+          `Or invite them on GitHub: https://github.com/${repo}/settings/access`,
+      );
+    }
+    lines.push(
+      r.out ? `Invited ${user} to ${repo}. GitHub emails them the invite.` : `${user} already has access to ${repo}.`,
+      '',
+      'Send them this message:',
+    );
+  }
+  console.log([...lines, '', message].join('\n'));
+}
+
 // ---------- status / uninstall / help ----------
 
 function status() {
@@ -542,10 +592,11 @@ function help() {
   node huddle.mjs disconnect [--marker TEXT]   stop sharing the current chat
   node huddle.mjs sync [--now]                 share connected chats (the routine runs this)
   node huddle.mjs consult < brief.txt          friends' perspectives for a brief
+  node huddle.mjs invite GITHUB_USERNAME       add a friend to the repo and print the message to send them
   node huddle.mjs status
   node huddle.mjs uninstall`);
 }
 
-const commands = { install, connect, disconnect, sync, consult, status, uninstall, help };
-const { cmd, opts } = parseArgs(process.argv.slice(2));
-(commands[cmd] || help)(opts);
+const commands = { install, connect, disconnect, sync, consult, invite, status, uninstall, help };
+const { cmd, opts, positional } = parseArgs(process.argv.slice(2));
+(commands[cmd] || help)(opts, positional);

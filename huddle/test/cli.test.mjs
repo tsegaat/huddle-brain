@@ -249,3 +249,50 @@ describe('connect, sync, consult', () => {
     assert.match(alice.run(['status']).out, /isn't set up/);
   });
 });
+
+describe('invite', () => {
+  const owner = world.friend('owner');
+  const bin = path.join(world.root, 'fake-bin');
+  const ghLog = path.join(world.root, 'gh-calls.log');
+  fs.mkdirSync(bin, { recursive: true });
+  // A stand-in GitHub CLI: logs its arguments and answers like the collaborators API.
+  fs.writeFileSync(
+    path.join(bin, 'gh'),
+    `#!/bin/sh\necho "$@" >> "${ghLog}"\ncase "$*" in *already*) exit 0;; *nosuchuser*) echo "HTTP 404: Not Found" >&2; exit 1;; *) echo '{"id":1}';; esac\n`,
+    { mode: 0o755 },
+  );
+  const env = { PATH: `${bin}${path.delimiter}${process.env.PATH}` };
+  sh('git', ['-C', owner.brain, 'remote', 'set-url', 'origin', 'https://github.com/someone/huddle-brain.git']);
+
+  test('invites through the GitHub CLI and prints the message to send', () => {
+    const r = owner.run(['invite', '@alice-1'], { env });
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /Invited alice-1 to someone\/huddle-brain/);
+    assert.match(r.out, /Send them this message/);
+    assert.ok(r.out.includes(fs.readFileSync(path.join(owner.brain, 'JOIN.md'), 'utf8').trim()));
+    assert.match(fs.readFileSync(ghLog, 'utf8'), /api -X PUT repos\/someone\/huddle-brain\/collaborators\/alice-1 -f permission=push/);
+  });
+
+  test('says when the friend already has access', () => {
+    const r = owner.run(['invite', 'already'], { env });
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /already already has access/);
+  });
+
+  test('explains a failed invite and rejects bad usernames', () => {
+    const bad = owner.run(['invite', 'nosuchuser'], { env });
+    assert.equal(bad.code, 1);
+    assert.match(bad.out, /Couldn't invite nosuchuser: HTTP 404/);
+    const weird = owner.run(['invite', 'not a/user'], { env });
+    assert.equal(weird.code, 1);
+  });
+
+  test('with no username it only prints the message', () => {
+    const before = fs.readFileSync(ghLog, 'utf8');
+    const r = owner.run(['invite'], { env });
+    assert.equal(r.code, 0, r.out);
+    assert.match(r.out, /nobody was invited/);
+    assert.match(r.out, /Accept the GitHub invite/);
+    assert.equal(fs.readFileSync(ghLog, 'utf8'), before);
+  });
+});
